@@ -29,5 +29,5 @@ var timerID = setInterval(function(){
         clearInterval(timerID);
     }
 
-}, 10);
+}, 10); // 10ms間隔
 
