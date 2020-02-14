@@ -1,0 +1,145 @@
+MQTTテスト２
+
+(1)試験構成
+
+UbuntuPCをBrokerにして、別IPのWindowsPCでPublisher/Clientそれぞれの
+MQTTのプロセスをnodejs上から走らせて確認。
+
+
+   <Ubunut PC>			               <Windows PC>
+
+MQTT Broker(192.168.24.6) <---------- MQTT publisher プロセス (192.168.24.104)
+　　　　　　|　　 
+            |	
+            +-----------------------> MQTT Client プロセス（192.168.24.104)
+
+
+
+(2)publisher 側ソースコード
+
+//10ms間隔で10メッセージ送信して停止する
+
+const SERVER_IP = "mqtt://192.168.24.6"; //localhost 
+const TOPIC_BASE = "application/1/node/0000000000000001/";
+
+var mqtt = require('mqtt');
+var client = mqtt.connect(SERVER_IP);
+var count =0;
+
+client.on('connect', function(){
+    console.log("接続");  
+});
+
+var timerID = setInterval(function(){
+
+    var nowtime = new Date;
+    var nowsec = nowtime.getSeconds();
+    var nowmilsec = nowtime.getMilliseconds();
+
+    var RXPK = {
+
+        "TagName":  "280 1204 0002" + "-" + count,　// 0-9を表示
+        "ReadTime5": nowsec + "," + nowmilsec,　　　// 送信時刻の秒およびミリ秒を表示
+        "RSSI": -35.5
+                 
+    };
+
+    client.publish(TOPIC_BASE+'tx', JSON.stringify(RXPK));
+    count++;
+    if(count==10){
+        clearInterval(timerID);
+    }
+
+}, 10);
+
+(3）subscriber側ソースコード
+
+const HOSTNAME2 = "192.168.24.6"
+const SERVER_IP = "mqtt://" + HOSTNAME2;
+const TOPIC_BASE = "application/+/node/+/tx";
+
+var mqtt = require('mqtt');
+var client = mqtt.connect(SERVER_IP);
+
+client.on('connect', function() {
+    client.subscribe(TOPIC_BASE );
+    console.log("接続");
+});
+
+client.on('message', function(topic, message){
+    var msg = message.toString();
+	var o = JSON.parse(msg);
+  
+    console.log(o);
+  //  console.log("data is: " + o["data"]);
+});
+
+
+(4)Mosquitto 表示
+
+wtec04@IC-wtec04:~$ mosquitto_sub -d -h 192.168.24.6 -t application/# -v
+Client mosqsub|6575-IC-wtec04 sending CONNECT
+Client mosqsub|6575-IC-wtec04 received CONNACK (0)
+Client mosqsub|6575-IC-wtec04 sending SUBSCRIBE (Mid: 1, Topic: application/#, QoS: 0)
+Client mosqsub|6575-IC-wtec04 received SUBACK
+Subscribed (mid: 1): 0
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-0","ReadTime5":"53,413","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-1","ReadTime5":"53,444","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-2","ReadTime5":"53,459","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-3","ReadTime5":"53,475","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-4","ReadTime5":"53,491","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-5","ReadTime5":"53,513","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-6","ReadTime5":"53,528","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-7","ReadTime5":"53,544","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-8","ReadTime5":"53,560","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-9","ReadTime5":"53,575","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-0","ReadTime5":"20,726","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-1","ReadTime5":"20,757","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-2","ReadTime5":"20,772","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-3","ReadTime5":"20,788","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-4","ReadTime5":"20,804","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-5","ReadTime5":"20,819","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-6","ReadTime5":"20,841","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-7","ReadTime5":"20,857","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-8","ReadTime5":"20,872","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 received PUBLISH (d0, q0, r0, m0, 'application/1/node/0000000000000001/tx', ... (63 bytes))
+application/1/node/0000000000000001/tx {"TagName":"280 1204 0002-9","ReadTime5":"20,888","RSSI":-35.5}
+Client mosqsub|6575-IC-wtec04 sending PINGREQ
+Client mosqsub|6575-IC-wtec04 received PINGRESP
+
+(5)Client側での受信
+
+C:\Users\3911915\Desktop\nodejs\app-server>node mqtt_subscribe_test.js
+接続
+{ TagName: '280 1204 0002-0', ReadTime5: '20,726', RSSI: -35.5 }
+{ TagName: '280 1204 0002-1', ReadTime5: '20,757', RSSI: -35.5 }
+{ TagName: '280 1204 0002-2', ReadTime5: '20,772', RSSI: -35.5 }
+{ TagName: '280 1204 0002-3', ReadTime5: '20,788', RSSI: -35.5 }
+{ TagName: '280 1204 0002-4', ReadTime5: '20,804', RSSI: -35.5 }
+{ TagName: '280 1204 0002-5', ReadTime5: '20,819', RSSI: -35.5 }
+{ TagName: '280 1204 0002-6', ReadTime5: '20,841', RSSI: -35.5 }
+{ TagName: '280 1204 0002-7', ReadTime5: '20,857', RSSI: -35.5 }
+{ TagName: '280 1204 0002-8', ReadTime5: '20,872', RSSI: -35.5 }
+{ TagName: '280 1204 0002-9', ReadTime5: '20,888', RSSI: -35.5 }
+^C
+
+★10ms間隔で送信したメッセージがBrokerを介して正しく受信されている。
